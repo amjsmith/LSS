@@ -78,7 +78,7 @@ parser.add_argument("--use_map_veto", help="string to include in full file name 
 parser.add_argument("--add_tlcomp", help="add completeness FRAC_TLOBS_TILES to randoms",default='n')
 
 parser.add_argument("--bgs_zmin", help="minimum redshift for BGS_BRIGHT", default=0.01, type=float) 
-parser.add_argument("--bgs_zmax", help="maximum redshift for BGS_BRIGHT", default=0.5, type=float
+parser.add_argument("--bgs_zmax", help="maximum redshift for BGS_BRIGHT", default=0.5, type=float)
 
 
 parser.add_argument("--fillran", help="add imaging properties to randoms",default='n')
