@@ -77,6 +77,8 @@ parser.add_argument("--apply_map_veto", help="apply vetos to data and randoms ba
 parser.add_argument("--use_map_veto", help="string to include in full file name denoting whether map veto was applied",default='_HPmapcut')
 parser.add_argument("--add_tlcomp", help="add completeness FRAC_TLOBS_TILES to randoms",default='n')
 
+parser.add_argument("--bgs_zmin", help="minimum redshift for BGS_BRIGHT", default=0.01, type=float) 
+parser.add_argument("--bgs_zmax", help="maximum redshift for BGS_BRIGHT", default=0.5, type=float
 
 
 parser.add_argument("--fillran", help="add imaging properties to randoms",default='n')
@@ -726,9 +728,9 @@ if type[:3] == 'LRG':
 if type == 'BGS_BRIGHT-21.5':
     zrl = [(0.1,0.4)]
 elif type[:3] == 'BGS':
-    zrl = [(0.01,0.5)]
-    zmin = 0.01
-    zmax = 0.5    
+    zrl = [(args.bgs_zmin,args.bgs_zmax)]
+    zmin = args.bgs_zmin
+    zmax = args.bgs_zmax
 
 
 
