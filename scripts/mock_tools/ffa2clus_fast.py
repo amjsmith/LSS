@@ -45,7 +45,7 @@ parser.add_argument("--data_dir",help="where to find the data randoms",default='
 parser.add_argument("--specdata_dir",help="where to find the spec data ",default='/global/cfs/cdirs/desi/survey/catalogs/Y1/LSS/iron/')
 parser.add_argument("--minr", help="minimum number for random files",default=0,type=int)
 parser.add_argument("--maxr", help="maximum for random files, default is all 18)",default=18,type=int) 
-parser.add_argument("--mockver", default='AbacusSummit', help = "which mocks to use")
+parser.add_argument("--mockver", default='AbacusSummit_v4_1fixran', help = "which mocks to use")
 parser.add_argument("--mockcatver", default=None, help = "if not None, gets added to the output path")
 
 parser.add_argument("--tracer", default = 'all')
@@ -111,13 +111,14 @@ def splitGC(flroot,datran='.dat',rann=0):
     #gc = c.transform_to('galactic')
     sel_ngc = common.splitGC(fn)#gc.b > 0
     outf_ngc = flroot+'NGC_'+app
-    common.write_LSS(fn[sel_ngc],outf_ngc)
+    common.write_LSS_scratchcp(fn[sel_ngc],outf_ngc)
     outf_sgc = flroot+'SGC_'+app
-    common.write_LSS(fn[~sel_ngc],outf_sgc)
+    common.write_LSS_scratchcp(fn[~sel_ngc],outf_sgc)
 
 
 
-def ran_col_assign(randoms,data,sample_columns,tracer):
+def ran_col_assign(randoms,data,sample_columns,tracer,seed=0):
+    rng = np.random.default_rng(seed=seed)
     if (not 'TARGETID_DATA' in data.colnames)&('TARGETID' in data.colnames):
         data.rename_column('TARGETID', 'TARGETID_DATA')
     def _resamp(selregr,selregd):
@@ -126,7 +127,8 @@ def ran_col_assign(randoms,data,sample_columns,tracer):
         rand_sel = [selregr,~selregr]
         dat_sel = [ selregd,~selregd]
         for dsel,rsel in zip(dat_sel,rand_sel):
-            inds = np.random.choice(len(data[dsel]),len(randoms[rsel]))
+            #inds = np.random.choice(len(data[dsel]),len(randoms[rsel]))
+            inds = rng.choice(len(data[dsel]),len(randoms[rsel]))
             print(len(data[dsel]),len(inds),np.max(inds))
             dshuf = data[dsel][inds]
             for col in sample_columns:
@@ -194,18 +196,24 @@ def apply_imaging_veto(ff,reccircmasks,ebits):
 
 nproc = 18
 
-mockdir = args.base_dir+args.mockver+'/mock'+str(args.realization)+'/'
-if args.overwrite == 'n':
-    if os.path.isfile(mockdir+'ELG_LOP_ffa_NGC_clustering.dat.fits'):
-        sys.exit('ELG LSS catalog already exists')
+mcatver = args.mockcatver
+if mcatver is None:
+    mcatver = ''
+
+mockdir = args.base_dir+args.mockver+'/'+mcatver+'/mock'+str(args.realization)+'/'
+
+#if args.mockcatver is not None:
+#    mockdir += args.mockcatver + '/'
+
 if args.outloc == None:
     outdir = os.getenv(scratch)+'/'+args.mockver+'/mock'+str(args.realization)+'/'
-
 if args.outloc == 'prod':
     outdir = mockdir
 
-if args.mockcatver is not None:
-    outdir += args.mockcatver + '/'
+if args.overwrite == 'n':
+    if os.path.isfile(outdir+'ELG_LOP_ffa_NGC_clustering.dat.fits'):
+        sys.exit('ELG LSS catalog '+outdir+'ELG_LOP_ffa_NGC_clustering.dat.fits'+ ' already exists')
+
 
 if not os.path.exists(outdir):
     os.makedirs(outdir)
@@ -312,7 +320,7 @@ for tracer in tracers:
         place to add imaging systematic weights and redshift failure weights would be here
         '''
         mock_data_tr['WEIGHT'] = mock_data_tr['WEIGHT_SYS']*mock_data_tr['WEIGHT_COMP']*mock_data_tr['WEIGHT_ZFAIL']
-        common.write_LSS(mock_data_tr,out_data_fn)
+        common.write_LSS_scratchcp(mock_data_tr,out_data_fn)
 
         #splitGC(out_data_froot,'.dat')
 
@@ -327,6 +335,7 @@ for tracer in tracers:
     if args.mkran == 'y':
         if args.mkdat == 'n':
             mock_data_tr = Table(fitsio.read(out_data_fn))
+        mock_data_tr.rename_column('TARGETID', 'TARGETID_DATA')
         def _mkran(rann):
             
             tracerr = tracer
@@ -341,8 +350,8 @@ for tracer in tracers:
             rcols = ['RA','DEC','TILELOCID','PHOTSYS','TARGETID','NTILE','FRAC_TLOBS_TILES']
             ran = Table(fitsio.read(in_ran_fn,columns=rcols))
 
-            ran = ran_col_assign(ran,mock_data_tr,ran_samp_cols,tracer)
-            common.write_LSS(ran,out_ran_fn)
+            ran = ran_col_assign(ran,mock_data_tr,ran_samp_cols,tracer,seed=rann)
+            common.write_LSS_scratchcp(ran,out_ran_fn)
             del ran
             return True
             #splitGC(out_data_froot,'.ran',rann)

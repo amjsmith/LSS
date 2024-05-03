@@ -239,9 +239,6 @@ def get_clustering_positions_weights(catalog, distance, zlim=(0., np.inf),maglim
     if 'EB' in weight_type:
         weights *=  catalog['WEIGHT_SYSEB'][mask]
         print('multiplying weights by WEIGHT_SYSEB')
-    if 'FKP' in weight_type:
-        weights *= catalog['WEIGHT_FKP'][mask]
-        print('multiplying weights by WEIGHT_FKP')
     if 'nofail' in weight_type:
         weights /= catalog['WEIGHT_ZFAIL'][mask]
         print('dividing weights by WEIGHT_ZFAIL')
@@ -251,20 +248,32 @@ def get_clustering_positions_weights(catalog, distance, zlim=(0., np.inf),maglim
     if 'addSSR' in weight_type:
         weights *= catalog['WEIGHT_focal'][mask]
         print('multiplying weights by WEIGHT_focal')
+    if 'FKP' in weight_type:
+        weights *= catalog['WEIGHT_FKP'][mask]
+        print('multiplying weights by WEIGHT_FKP')
         
     if name == 'data' and 'bitwise' in weight_type:
         if 'default' in weight_type:
             #weights /= catalog['WEIGHT_COMP'][mask]
             weights = catalog['WEIGHT_SYS'][mask]*catalog['WEIGHT_ZFAIL'][mask]#/(129/(1+128*catalog['PROB_OBS'][mask]))
+            
+
             #print('dividing weights by WEIGHT_COMP')
         if 'pip' in weight_type:
             weights = catalog['WEIGHT'][mask]/catalog['WEIGHT_COMP'][mask]
+        if 'FKP' in weight_type:
+            weights *= catalog['WEIGHT_FKP'][mask]
+            print('multiplying weights by WEIGHT_FKP')
+
         weights = _format_bitweights(catalog['BITWEIGHTS'][mask]) + [weights]
     if name == 'data' and 'IIP' in weight_type:
         weights = 129/(1+128*catalog['PROB_OBS'][mask])
         if 'default' in weight_type:
             #weights /= catalog['WEIGHT_COMP'][mask]
             weights *= catalog['WEIGHT_SYS'][mask]*catalog['WEIGHT_ZFAIL'][mask]
+        if 'FKP' in weight_type:
+            weights *= catalog['WEIGHT_FKP'][mask]
+            print('multiplying weights by WEIGHT_FKP')
 
     if name == 'randoms':
         #if 'default' in weight_type:
@@ -275,9 +284,17 @@ def get_clustering_positions_weights(catalog, distance, zlim=(0., np.inf),maglim
                 logger.info('all random weights set to 1')
             if 'pip' in weight_type:
                 weights = catalog['WEIGHT'][mask]
+            if 'FKP' in weight_type:
+                weights *= catalog['WEIGHT_FKP'][mask]
+                print('multiplying weights by WEIGHT_FKP')
+
         if 'IIP' in weight_type and 'default' in weight_type:
             weights = np.ones_like(positions[0])#catalog['WEIGHT_SYS'][mask]*catalog['WEIGHT_ZFAIL'][mask]
             logger.info('all random weights set to 1')
+            if 'FKP' in weight_type:
+                weights *= catalog['WEIGHT_FKP'][mask]
+                print('multiplying weights by WEIGHT_FKP')
+
             #weights /= catalog['FRAC_TLOBS_TILES'][mask]
             #print('dividing weights by FRAC_TLOBS_TILES')
 #         if 'RF' in weight_type:
@@ -294,6 +311,8 @@ def get_clustering_positions_weights(catalog, distance, zlim=(0., np.inf),maglim
 #             weights /= catalog['WEIGHT_ZFAIL'][mask]
 #         if 'fluxfail' in weight_type:
 #             weights *= (catalog['WEIGHT_ZFAIL_FIBERFLUX'][mask]/catalog['WEIGHT_ZFAIL'][mask])
+
+
 
     if return_mask:
         return positions, weights, mask
@@ -403,20 +422,29 @@ def get_full_positions_weights(catalog, name='data', weight_type='default', fibe
 
     if fibered: mask &= catalog['LOCATION_ASSIGNED']
     positions = [catalog['RA'][mask], catalog['DEC'][mask], catalog['DEC'][mask]]
+    weights = np.ones_like(positions[0])
+    if 'pip' in weight_type:
+        weights = catalog['WEIGHT_NTILE'][mask]
+    if 'FKP' in weight_type:
+        weights *= catalog['WEIGHT_FKP_NTILE'][mask]
+
     if name == 'data' and fibered:
         if 'default' in weight_type or 'completeness' in weight_type:
             weights = get_inverse_probability_weight(_format_bitweights(catalog['BITWEIGHTS'][mask]), **weight_attrs)
         if 'bitwise' in weight_type:
-            weights = _format_bitweights(catalog['BITWEIGHTS'][mask])
-    else: weights = np.ones_like(positions[0])
+            weights = _format_bitweights(catalog['BITWEIGHTS'][mask])+weights
+    #else: weights = np.ones_like(positions[0])
     if return_mask:
         return positions, weights, mask
     return positions, weights
 
 
 def read_full_positions_weights(name='data', weight_type='default', fibered=False, region='', weight_attrs=None, **kwargs):
-    if 'GC' in region:
+    #if 'GC' in region:
+    #    region = [region]
+    if type(region) is not list:
         region = [region]
+
     def read_positions_weights(name):
         positions, weights = [], []
         for reg in region:
@@ -431,9 +459,9 @@ def read_full_positions_weights(name='data', weight_type='default', fibered=Fals
             positions.append(p)
             weights.append(w)
             if fibered:
-                logger.info('loaded fibered full for '+name )
+                logger.info('loaded fibered full for '+name + ' for region '+reg)
             else:
-                logger.info('loaded parent full for '+name)    
+                logger.info('loaded parent full for '+name+ ' for region '+reg)    
             logger.info(str(len(p))+' entries')
         return positions, weights
 

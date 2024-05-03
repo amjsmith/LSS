@@ -57,8 +57,9 @@ parser.add_argument("--realization",type=int)
 parser.add_argument("--prog", default="DARK")
 #parser.add_argument("--mockdir", help="directory when pota mock data is",default='/global/cfs/cdirs/desi/users/acarnero/y1mock/SecondGen/clustering/')
 parser.add_argument("--base_dir", help="base directory for input/output",default='/global/cfs/cdirs/desi/survey/catalogs/Y1/mocks/SecondGenMocks/')
-parser.add_argument("--random_dir",help="where to find the data randoms",default='/dvs_ro/cfs/cdirs/desi/survey/catalogs/Y1/LSS/iron/LSScats/v0.6/')
+parser.add_argument("--random_dir",help="where to find the data randoms",default='/dvs_ro/cfs/cdirs/desi/survey/catalogs/Y1/LSS/random')
 parser.add_argument("--mockver", default='AbacusSummit_v4_1', help = "which mocks to use")
+parser.add_argument("--outloc", default = None)
 parser.add_argument("--minr", help="minimum number for random files",default=0,type=int)
 parser.add_argument("--maxr", help="maximum for random files",default=18,type=int) 
 parser.add_argument("--par", default = 'y',help='whether to run random steps in parallel or not')
@@ -94,8 +95,15 @@ else:
 mockdir = args.base_dir+args.mockver+'/mock'+str(args.realization)+'/'
 in_data_fn = mockdir+'pota-'+args.prog+'.fits'
 logger.info(in_data_fn)
-out_data_fn = mockdir+tracer+'_complete_noveto_clustering.dat.fits'
-out_data_froot = mockdir+tracer+'_complete_noveto_'
+if args.outloc == None:
+    outdir = os.getenv(scratch)+'/'+args.mockver+'/mock'+str(args.realization)+'/'
+
+if args.outloc == 'prod':
+    outdir = mockdir
+
+
+out_data_fn = outdir+tracer+'_complete_novetonocoll_clustering.dat.fits'
+out_data_froot = outdir+tracer+'_complete_novetonocoll_'
 cols = ['LOCATION',
  'FIBER',
  'TARGETID',
@@ -110,8 +118,8 @@ cols = ['LOCATION',
  'COLLISION',
  'TILEID']
 mock_data = fitsio.read(in_data_fn.replace('global','dvs_ro'),columns=cols)
-selcoll = mock_data['COLLISION'] == False
-mock_data = mock_data[selcoll]
+#selcoll = mock_data['COLLISION'] == False
+#mock_data = mock_data[selcoll]
 
 if args.prog == 'DARK':
     bit = targetmask.desi_mask[args.tracer]
@@ -160,17 +168,15 @@ splitGC(out_data_froot,'.dat')
 ran_samp_cols = ['Z','WEIGHT']
 
 
-def ran_col_assign(randoms,data,sample_columns,tracer,seed=0):
-    #data.rename_column('TARGETID', 'TARGETID_DATA')
-    rng = np.random.default_rng(seed=seed)
+def ran_col_assign(randoms,data,sample_columns,tracer):
+    data.rename_column('TARGETID', 'TARGETID_DATA')
     def _resamp(selregr,selregd):
         for col in sample_columns:
             randoms[col] =  np.zeros_like(data[col],shape=len(randoms))
         rand_sel = [selregr,~selregr]
         dat_sel = [ selregd,~selregd]
         for dsel,rsel in zip(dat_sel,rand_sel):
-            #inds = np.random.choice(len(data[dsel]),len(randoms[rsel]))
-            inds = rng.choice(len(data[dsel]),len(randoms[rsel]))
+            inds = np.random.choice(len(data[dsel]),len(randoms[rsel]))
             #logger.info(str(len(data[dsel]),len(inds),np.max(inds))
             dshuf = data[dsel][inds]
             for col in sample_columns:
@@ -220,13 +226,14 @@ def ran_col_assign(randoms,data,sample_columns,tracer,seed=0):
 
     return randoms
 
-mock_data.rename_column('TARGETID', 'TARGETID_DATA')
+
 def _mkran(rann):
-    in_ran_fn = args.random_dir+'QSO_'+str(rann)+'_full_noveto.ran.fits' #type isn't important, all noveto have same ra,dec
+    in_ran_fn = args.random_dir+str(rann)+'/pota-'+args.prog+'.fits' #need to go back to pota to get randoms without collisions
     out_ran_fn = out_data_froot+str(rann)+'_clustering.ran.fits'
-    ran = Table(fitsio.read(in_ran_fn,columns=['RA','DEC','PHOTSYS','TARGETID']))
-    #with mock_data as data:
-    ran = ran_col_assign(ran,mock_data,ran_samp_cols,args.tracer,seed=rann)
+    ran = Table(fitsio.read(in_ran_fn,columns=['RA','DEC','TARGETID']))
+    ran = unique(ran,keys=['TARGETID'])
+    ran = common.addNS(ran)
+    ran = ran_col_assign(ran,mock_data,ran_samp_cols,args.tracer)
     common.write_LSS_scratchcp(ran,out_ran_fn,logger=logger)
     splitGC(out_data_froot,'.ran',rann)
     return True	
