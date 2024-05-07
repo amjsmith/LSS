@@ -134,10 +134,12 @@ def catalog_fn(tracer='ELG', region='', ctype='clustering', name='data', ran_sw=
         cat_dir += ctype
     #if ctype == 'clustering':
     #    cat_dir += '/unblinded/'           
-    if ctype == 'full':
+    if 'full' in ctype:# == 'full':
         region = ''
         cat_dir = cat_dir.replace('/unblinded','')
         cat_dir = cat_dir.replace('/blinded','')
+        if 'BGS_BRIGHT' in tracer:
+            tracer = 'BGS_BRIGHT'
     dat_or_ran = name[:3]
     if name == 'randoms' and tracer == 'LRG_main' and ctype == 'full':
         tracer = 'LRG'
@@ -429,10 +431,10 @@ def get_full_positions_weights(catalog, name='data', weight_type='default', fibe
         weights *= catalog['WEIGHT_FKP_NTILE'][mask]
 
     if name == 'data' and fibered:
-        if 'default' in weight_type or 'completeness' in weight_type:
-            weights = get_inverse_probability_weight(_format_bitweights(catalog['BITWEIGHTS'][mask]), **weight_attrs)
+        #if 'default' in weight_type or 'completeness' in weight_type:
+        #    weights = get_inverse_probability_weight(_format_bitweights(catalog['BITWEIGHTS'][mask]), **weight_attrs)
         if 'bitwise' in weight_type:
-            weights = _format_bitweights(catalog['BITWEIGHTS'][mask])+weights
+            weights = _format_bitweights(catalog['BITWEIGHTS'][mask])+[weights]
     #else: weights = np.ones_like(positions[0])
     if return_mask:
         return positions, weights, mask
