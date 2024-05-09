@@ -212,7 +212,13 @@ if args.imsys == 'y':
     dat[syscol] = np.ones(len(dat))
     for reg in regl:
         print(reg)
-        pwf = lssmapdirout+'QSO_mapprops_healpix_nested_nside'+str(nside)+'_'+reg+'.fits'
+        if args.use_altmtl == 'y':
+            if args.data_version!='v0.6': print("when running SYSNet on altmtl mocks should use tracer specific v0.6 hpmaps")
+            pwf = lssmapdirout+tpstr+'_mapprops_healpix_nested_nside'+str(nside)+'_'+reg+'.fits'
+        else:
+            pwf = lssmapdirout+'QSO_mapprops_healpix_nested_nside'+str(nside)+'_'+reg+'.fits'
+        print(pwf)
+        #pwf = lssmapdirout+'QSO_mapprops_healpix_nested_nside'+str(nside)+'_'+reg+'.fits'
         sys_tab = Table.read(pwf)
         cols = list(sys_tab.dtype.names)
         for col in cols:
@@ -390,12 +396,12 @@ if args.regressis == 'y':
     regr_func = rt.get_desi_data_clus_compute_weight
     if args.use_altmtl == 'y':
         use_map_veto='_HPmapcut'
-        #regr_func = rt.get_desi_data_full_compute_weight
+        regr_func = rt.get_desi_data_full_compute_weight
     for zl in zrl:    
         zw = str(zl[0])+'_'+str(zl[1])
         print('computing RF regressis weight for '+tp+zw)
         #logf.write('computing RF regressis weight for '+tracer_clus+zw+'\n')
-        regr_func(dirout, 'main', tp, nside, dirreg, zl, param,foot=dr9_footprint,nran=18,\
+        regr_func(dirout, 'main', tp, nside, dirreg, zl, param,foot=dr9_footprint,nran=18,data_type='mock',\
                   suffix_tracer=suffix_tracer, suffix_regressor=suffix_regressor, cut_fracarea=cut_fracarea, seed=seed,\
                   max_plot_cart=max_plot_cart,pixweight_path=pw_out_fn_root,pixmap_external=debv,sgr_stream_path=sgf,\
                   feature_names=fit_maps,use_sgr=use_sgr,feature_names_ext=feature_names_ext,use_map_veto=use_map_veto)
