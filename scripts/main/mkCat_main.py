@@ -1155,7 +1155,10 @@ if type == 'QSO':
     #zmax = 4.5
     dz = 0.02
     P0 = 6000
-    
+elif type[:3] == 'BGS':
+    dz = 0.01
+    if zrl[0][1]<0.15:
+        dz = 0.005
 else:    
     dz = 0.01
     #zmin = 0.01
