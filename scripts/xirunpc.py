@@ -606,6 +606,8 @@ if __name__ == '__main__':
     parser.add_argument('--rpcut', help='apply the rp-cut', type=float, default=None)
     parser.add_argument('--thetacut', help='apply the theta-cut (more up-to-date fibre collision correction), standard: 0.05', type=float, default=None)
 
+    parser.add_argument('--pimx'a, help='pimax for projected correlation function', type=float, default=40.0)
+
     setup_logging()
     args = parser.parse_args()
 
@@ -772,7 +774,7 @@ if __name__ == '__main__':
                                 rebinned.save_txt(fn_txt, wedges=(-1., -2./3, -1./3, 0., 1./3, 2./3, 1.))
                             elif corr_type == 'rppi':
                                 fn_txt = corr_fn(file_type='wp', **txt_kwargs)
-                                rebinned.save_txt(fn_txt, pimax=40.)
+                                rebinned.save_txt(fn_txt, pimax=args.pimax)
                                 for pifac in pi_rebinning_factors:
                                     rebinned = result[:(result.shape[0]//factor)*factor:factor,:(result.shape[1]//pifac)*pifac:pifac]
                                     txt_kwargs.update(bin_type=args.bin_type+str(factor)+'_'+str(pifac))
@@ -786,7 +788,7 @@ if __name__ == '__main__':
                                 if corr_type == 'smu':
                                     sep, xis = rebinned(ells=(0, 2, 4), return_sep=True, return_std=False)
                                 elif corr_type == 'rppi':
-                                    sep, xis = rebinned(pimax=40, return_sep=True, return_std=False)
+                                    sep, xis = rebinned(pimax=args.pimax, return_sep=True, return_std=False)
                                 else:
                                     sep, xis = rebinned(return_sep=True, return_std=False)
                                 if args.bin_type == 'log':
