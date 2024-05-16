@@ -606,7 +606,7 @@ if __name__ == '__main__':
     parser.add_argument('--rpcut', help='apply the rp-cut', type=float, default=None)
     parser.add_argument('--thetacut', help='apply the theta-cut (more up-to-date fibre collision correction), standard: 0.05', type=float, default=None)
 
-    parser.add_argument('--pimx'a, help='pimax for projected correlation function', type=float, default=40.0)
+    parser.add_argument('--pimax', help='pimax for projected correlation function', type=float, default=40.0)
 
     setup_logging()
     args = parser.parse_args()
